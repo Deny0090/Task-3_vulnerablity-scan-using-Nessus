@@ -1,61 +1,71 @@
-Sender’s Email Address
-   "noreplydhi@securemygateway.com" It clearly show that it is a fake DHL email address and it should be avoided
+1. SMB Signing Not Required (CVSS 5.3 – Medium)
+      What is the threat? 
+      Attackers can intercept/modify SMB traffic** (for file sharing, printer access, and authentication).  
+      Man-in-the-middle (MITM) attacks** that gain credentials, or inject malware.  
+      
+      Why is this occurring?
+      -Standard Windows/Samba defaults allow for **unsigned SMB connections** for compatibility.  
+      - Older systems (Windows 7, Server 2008) likely do not require signing by default.   
 
-Checking email header
-  The header are shown in this picture is not enough
-      From: noreplydhi@securemygateway.com 
-      Subject: DHI Shipping Invoice 
-  
-  Headers like :
-    * From, To, Subject
-    * Date, Return-Path, Received fields
+  How to remediate
+
+    On Windows: 
+      1.Open Group Policy Editor 
+         - Press `Win + R`, type `gpedit.msc` and hit Enter.  
+      2. Locate SMB Signing Options  
+         - Navigate to:  
     
-   Analyze these Headers using online tools like (https://toolbox.googleapps.com/apps/messageheader/ , https://mxtoolbox.com/EmailHeaders.aspx)
+   2.  Computer Configuration → Policies → Windows Settings → Security Settings → Local Policies → Security Options
+  
+      - Enable these policies  
+        -"Microsoft network server: Digitally sign communications (always)"
+        - "Microsoft network client: Digitally sign communications (always)"  
+   3. Apply your settings and reboot 
+      - In CMD run `gpupdate /force`, restart the OS.  
 
-Identify Suspicious Link/File
+     ```  
+
+      Verification 
+      - After remediation run **Nessus/OpenVAS** again to confirm that SMB signing is enforced.  
+      - On Windows to verify run:  
+        ```powershell
+        Get-SmbServerConfiguration | Select-Object RequireSecuritySignature
+
+
+
+
+2. SSL Certificate Cannot Be Trusted (CVSS 6.5 – Medium)
+  What’s the Risk? 
+    - Browsers display **"Not Secure" warnings**, reducing user trust.  
+    - MITM attacks** can decrypt/modify traffic (e.g., login pages, sensitive data).  
+
+  Common Causes
+   1. Self-signed certificate** (not issued by a Certificate Authority you trust).  
+   2. Expired certificate** (after the `notAfter` date).  
+   3. Missing intermediate certificates** (incomplete chain).  
+   4. Weak crypto** (SHA-1, RSA-1024, algorithms that should not be used).  
+
+    How to Fix It
    
-    In this email there is a link named "Document/Invoice Receipt" but it actually leads to a malicious website that can obtain your credential.
-    The Attachments like "Invoice.zip" or "Document.exe" may contain malware.
+    Windows (IIS):  
+     1.   - Use Win-ACME ((https://www.win-acme.com/)) to auto-renew Let’s Encrypt certs.
+     
+     2.  Buy a Commercial Certificate  
+         - Providers: [DigiCert](https://www.digicert.com/), [Sectigo](https://www.sectigo.com/).  
+          - Follow their process to get a **CSR (Certificate Signing Request)**.  
 
-Urgent or threatening language
-   
-    Some of phishing emails contains Phrases like:
-     * Your account will be suspended in 24 hours!
-     * Immediate action required—verify your credentials now.
-   
-    this is method phycological method of a hacker to download/click the suspicious links
 
-Mismatched URLs
-   
-    Use hover method like moving your mouse cursor over a link, button, or element on a screen without clicking it. In the context of phishing emails, hovering over a link reveals the actual URL
-    in this example of Phishing email the Link shows "Document/Invoice Receipt" using hover method we can see the real malicious link hide behind the text
+3. Self-Signed Certificate (CVSS 6.5 – Medium)
+    Is This Different from 2?
+   - Same root cause**, but this plugin specifically flags **self-signed certs** (no CA at all).  
 
-Spelling/Grammar Errors
+    Best Fix for Production Systems
+         - Never use self-signed certs in production.  
+         - Use **Let’s Encrypt** (free) or a paid CA.  
 
-   You can also check for any spelling errors like "Dear Costumer, you’re account has been locked" and poor grammar
-   in this provided example there grammar issues like (Your parcel sent by your customer arrived at our office, etc..)
-
-Summary of Phishing Traits
- 
- 
-
-1. Fake Sender:
-   - `noreplydhi@securemygateway.com` (spoofed address).  
-
-2. Suspicious Link:
-   - "Document/Invoice Receipt" hides malicious URL (hover to check).  
-
-3. Urgent Language:
-   - "Immediate action required!" (pressure tactic).  
-
-4. Grammar Errors:
-   - "Your parcel sent by your customer..." (poor phrasing).  
-
-5. Risky Attachment:
-   - "Invoice.zip" (may contain malware).  
-
- Action:
-   - Delete & Report** – Never click links/download files.  
-
+    If You Must Use Self-Signed (Internal Labs/Testing)
+        1. *Add the cert to trusted stores**:  
+            Windows:** Double-click the `.cer` file → "Install Certificate" → "Trusted Root Authorities".  
+        2. **Configure clients to ignore cert errors** (not recommended).  
 
   
